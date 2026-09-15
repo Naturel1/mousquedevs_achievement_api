@@ -114,6 +114,11 @@ All SQL migration scripts located in `migrations/` are embedded into the applica
 > Running `docker compose exec api bash` to use Diesel CLI is **not recommended** because `diesel_cli` is not pre-installed in the Docker container (compiling it takes several minutes) and the production image is minimal.  
 > The safest and cleanest approaches are either **letting the API handle migrations automatically** or **running Diesel CLI from your host machine** (connecting via the exposed port `5432`).
 
+#### Generate a migration with Diesel
+```bash
+diesel migration generate <name>
+```
+
 #### 1. Automatic Execution on Startup (Safest & Recommended)
 When the Docker container starts, the Rocket ignition fairing (`MigrationFairing`) automatically applies all pending migrations against the database. No manual intervention or Diesel CLI installation is required.
 
