@@ -1,0 +1,13 @@
+[default]
+address = "0.0.0.0"
+port = 8000
+log_level = "normal"
+
+[default.databases.postgres_db]
+url = "postgres://postgres:postgres@localhost:5432/maadb"
+
+[development]
+log_level = "debug"
+
+[production]
+log_level = "critical"

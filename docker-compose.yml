@@ -5,32 +5,38 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mydb
+      POSTGRES_DB: maadb
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U postgres -d maadb"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
 
   api:
-    image: rust:1.85-bookworm
+    image: rust:1.88
     working_dir: /app
     volumes:
       - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/target
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/mydb
+      DATABASE_URL: postgres://postgres:postgres@db:5432/maadb
       ROCKET_ADDRESS: 0.0.0.0
       ROCKET_PORT: 8000
+      ROCKET_DATABASES: '{postgres_db={url="postgres://postgres:postgres@db:5432/maadb"}}'
+      JWT_SECRET: mousquedevs_super_secret_jwt_key_change_in_production
     ports:
       - "8000:8000"
     command: bash -c "cargo run"
 
 volumes:
   pgdata:
+  cargo-cache:
+  target-cache:
