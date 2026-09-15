@@ -42,6 +42,6 @@ pub async fn update_my_profile(
 }
 
 /// Returns all routes for profile management
-pub fn routes() -> Vec<Route> {
+pub fn routes_profiles() -> Vec<Route> {
     routes![get_profile_by_id, update_my_profile]
 }

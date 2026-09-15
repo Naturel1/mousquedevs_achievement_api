@@ -9,7 +9,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 /// PostgreSQL connection pool managed by Rocket via Diesel
 /// The name "postgres_db" corresponds to the key configured in Rocket.toml and docker-compose.yml
 #[database("postgres_db")]
-pub struct DbConn(diesel::PgConnection);
+pub struct DbConn(PgConnection);
 
 /// Runs pending Diesel migrations against the specified database URL
 pub fn run_embedded_migrations(

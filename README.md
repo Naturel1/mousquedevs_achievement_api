@@ -106,6 +106,51 @@ docker compose down
 
 ---
 
+### 🗄️ Database Migrations with Docker
+
+All SQL migration scripts located in `migrations/` are embedded into the application binary at compile-time via `diesel_migrations`.
+
+> **Note on Diesel CLI & Docker:**  
+> Running `docker compose exec api bash` to use Diesel CLI is **not recommended** because `diesel_cli` is not pre-installed in the Docker container (compiling it takes several minutes) and the production image is minimal.  
+> The safest and cleanest approaches are either **letting the API handle migrations automatically** or **running Diesel CLI from your host machine** (connecting via the exposed port `5432`).
+
+#### 1. Automatic Execution on Startup (Safest & Recommended)
+When the Docker container starts, the Rocket ignition fairing (`MigrationFairing`) automatically applies all pending migrations against the database. No manual intervention or Diesel CLI installation is required.
+
+#### 2. Running Migrations Once Docker is Running
+If you need to apply, revert, or manage migrations after starting the Docker containers:
+
+- **Option A: Restart the API container (Recommended)**
+  If new migration files were added or modified, restarting the container re-triggers the embedded migration check:
+  ```bash
+  docker compose restart api
+  ```
+  *(If using the production multi-stage `Dockerfile`, rebuild first: `docker compose up --build -d`)*
+
+- **Option B: Using Diesel CLI from the host machine**
+  Since PostgreSQL port `5432` is exposed to the host, you can run Diesel CLI locally to manage migrations and keep `src/schema.rs` synced with proper user permissions:
+  ```bash
+  # Run pending migrations
+  diesel migration run --database-url="postgres://postgres:postgres@localhost:5432/maadb"
+
+  # Check migration status
+  diesel migration list --database-url="postgres://postgres:postgres@localhost:5432/maadb"
+
+  # Revert the latest migration
+  diesel migration revert --database-url="postgres://postgres:postgres@localhost:5432/maadb"
+
+  # Redo (revert & re-run) the latest migration
+  diesel migration redo --database-url="postgres://postgres:postgres@localhost:5432/maadb"
+  ```
+
+- **Option C: Direct SQL execution via Docker `psql`**
+  Execute any SQL migration file directly into the running database container without extra host tools:
+  ```bash
+  docker compose exec -T db psql -U postgres -d maadb < migrations/<migration_name>/up.sql
+  ```
+
+---
+
 ## 💻 Local Setup (Without Docker)
 
 1. **Prerequisites on Arch Linux**:

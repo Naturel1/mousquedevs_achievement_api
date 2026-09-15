@@ -11,7 +11,6 @@ pub struct Achievement {
     pub id: i32,
     pub title: String,
     pub description: String,
-    pub points: i32,
     pub status: String,
     pub created_by_id: Option<i32>,
     pub created_at: NaiveDateTime,
@@ -23,7 +22,6 @@ pub struct Achievement {
 pub struct NewAchievement {
     pub title: String,
     pub description: String,
-    pub points: i32,
     pub status: String,
     pub created_by_id: Option<i32>,
 }
@@ -34,7 +32,6 @@ pub struct NewAchievement {
 pub struct UpdateAchievement {
     pub title: Option<String>,
     pub description: Option<String>,
-    pub points: Option<i32>,
     pub status: Option<String>,
 }
 
@@ -43,7 +40,6 @@ pub struct UpdateAchievement {
 pub struct ProposeAchievementRequest {
     pub title: String,
     pub description: String,
-    pub points: Option<i32>,
 }
 
 /// DTO for updating the status of an achievement (admin moderation: "approved", "rejected")

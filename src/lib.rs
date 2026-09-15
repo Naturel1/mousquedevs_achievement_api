@@ -31,11 +31,11 @@ pub fn build_rocket() -> Rocket<Build> {
         // API Health Check route
         .mount("/api", rocket::routes![routes::health::health_check])
         // Authentication routes (Register, Login, Current Profile)
-        .mount("/api/auth", routes::auth::routes())
+        .mount("/api/auth", routes::auth::routes_auth())
         // User profile routes
-        .mount("/api/profiles", routes::profiles::routes())
+        .mount("/api/profiles", routes::profiles::routes_profiles())
         // Achievement routes (View, Propose, Unlock, CRUD)
-        .mount("/api/achievements", routes::achievements::routes())
+        .mount("/api/achievements", routes::achievements::routes_achievements())
         // Admin panel routes (Moderation, Role management, Audit logs)
-        .mount("/api/admin", routes::admin::routes())
+        .mount("/api/admin", routes::admin::routes_admin())
 }

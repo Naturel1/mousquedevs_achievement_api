@@ -211,7 +211,7 @@ pub async fn get_logs(
 }
 
 /// Returns all routes of the administration panel
-pub fn routes() -> Vec<Route> {
+pub fn routes_admin() -> Vec<Route> {
     routes![
         list_users,
         update_user_role,

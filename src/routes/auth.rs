@@ -164,6 +164,6 @@ pub async fn get_current_user(
 }
 
 /// Returns all routes for the authentication module
-pub fn routes() -> Vec<Route> {
+pub fn routes_auth() -> Vec<Route> {
     routes![register, login, get_current_user]
 }

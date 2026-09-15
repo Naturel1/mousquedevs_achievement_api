@@ -51,18 +51,10 @@ pub async fn propose_achievement(
         ));
     }
 
-    let points_val = req.points.unwrap_or(10);
-    if points_val < 0 {
-        return Err(ApiError::BadRequest(
-            "Achievement points must be positive".to_string(),
-        ));
-    }
-
     db.run(move |conn| {
         let new_item = NewAchievement {
             title: title_trimmed,
             description: desc_trimmed,
-            points: points_val,
             status: "pending".to_string(),
             created_by_id: Some(auth.id),
         };
@@ -118,8 +110,8 @@ pub async fn obtain_achievement(
             Some(auth.id),
             "ACHIEVEMENT_OBTAINED",
             &format!(
-                "User '{}' unlocked achievement '{}' (+{} points)",
-                auth.username, achievement.title, achievement.points
+                "User '{}' unlocked achievement '{}'",
+                auth.username, achievement.title
             ),
         );
 
@@ -139,7 +131,6 @@ pub async fn create(
     let req = new_item.into_inner();
     let title_trimmed = req.title.trim().to_string();
     let desc_trimmed = req.description.trim().to_string();
-    let points_val = req.points.unwrap_or(10);
 
     if title_trimmed.is_empty() || desc_trimmed.is_empty() {
         return Err(ApiError::BadRequest(
@@ -151,7 +142,6 @@ pub async fn create(
         let item = NewAchievement {
             title: title_trimmed,
             description: desc_trimmed,
-            points: points_val,
             status: "approved".to_string(),
             created_by_id: Some(admin.id),
         };
@@ -204,7 +194,7 @@ pub async fn update(
 /// DELETE /api/achievements/<id>
 /// Deletes an existing achievement (Admin only)
 #[delete("/<id>")]
-pub async fn delete(
+pub async fn delete_achievement(
     db: DbConn,
     admin: AdminUser,
     id: i32,
@@ -240,7 +230,7 @@ pub async fn delete(
 }
 
 /// Returns all routes for the achievements module
-pub fn routes() -> Vec<Route> {
+pub fn routes_achievements() -> Vec<Route> {
     routes![
         get_all,
         get_by_id,
@@ -248,6 +238,6 @@ pub fn routes() -> Vec<Route> {
         obtain_achievement,
         create,
         update,
-        delete
+        delete_achievement
     ]
 }
