@@ -15,17 +15,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    action_logs (id) {
-        id -> Int4,
-        user_id -> Nullable<Int4>,
-        #[max_length = 100]
-        action -> Varchar,
-        details -> Text,
-        created_at -> Timestamp,
-    }
-}
-
-diesel::table! {
     profiles (id) {
         id -> Int4,
         user_id -> Int4,
@@ -63,14 +52,12 @@ diesel::table! {
 }
 
 diesel::joinable!(achievements -> users (created_by_id));
-diesel::joinable!(action_logs -> users (user_id));
 diesel::joinable!(profiles -> users (user_id));
 diesel::joinable!(user_achievements -> achievements (achievement_id));
 diesel::joinable!(user_achievements -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     achievements,
-    action_logs,
     profiles,
     user_achievements,
     users,

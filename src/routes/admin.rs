@@ -6,11 +6,10 @@ use crate::auth::jwt::AdminUser;
 use crate::db::DbConn;
 use crate::errors::ApiError;
 use crate::models::achievement::{Achievement, UpdateStatusRequest};
-use crate::models::action_log::ActionLog;
 use crate::models::user::{UpdateUserRoleRequest, UserResponse};
 use crate::models::user_achievement::UserAchievement;
 use crate::repositories::{
-    achievement_repository, log_repository, user_achievement_repository, user_repository,
+    achievement_repository, user_achievement_repository, user_repository,
 };
 
 /// GET /api/admin/users
@@ -46,14 +45,9 @@ pub async fn update_user_role(
 
     db.run(move |conn| {
         let updated = user_repository::update_role(conn, id, &new_role)?;
-        let _ = log_repository::log_action(
-            conn,
-            Some(admin.id),
-            "USER_ROLE_UPDATED",
-            &format!(
-                "Administrator '{}' changed the role of user '{}' (id: {}) to '{}'",
-                admin.username, updated.username, id, new_role
-            ),
+        log::info!(
+            "Administrator '{}' (id: {}) changed role of user '{}' (id: {}) to '{}'",
+            admin.username, admin.id, updated.username, id, new_role
         );
         Ok(Json(UserResponse::from(updated)))
     })
@@ -104,14 +98,9 @@ pub async fn update_achievement_status(
 
     db.run(move |conn| {
         let updated = achievement_repository::update_status(conn, id, &new_status)?;
-        let _ = log_repository::log_action(
-            conn,
-            Some(admin.id),
-            "ACHIEVEMENT_STATUS_UPDATED",
-            &format!(
-                "Administrator '{}' changed the status of achievement '{}' (id: {}) to '{}'",
-                admin.username, updated.title, id, new_status
-            ),
+        log::info!(
+            "Administrator '{}' (id: {}) changed status of achievement '{}' (id: {}) to '{}'",
+            admin.username, admin.id, updated.title, id, new_status
         );
         Ok(Json(updated))
     })
@@ -140,14 +129,9 @@ pub async fn grant_user_achievement(
         }
 
         let record = user_achievement_repository::grant(conn, user_id, achievement_id)?;
-        let _ = log_repository::log_action(
-            conn,
-            Some(admin.id),
-            "ADMIN_GRANT_ACHIEVEMENT",
-            &format!(
-                "Administrator '{}' granted achievement '{}' (id: {}) to '{}' (id: {})",
-                admin.username, achievement.title, achievement_id, user.username, user_id
-            ),
+        log::info!(
+            "Administrator '{}' (id: {}) granted achievement '{}' (id: {}) to user '{}' (id: {})",
+            admin.username, admin.id, achievement.title, achievement_id, user.username, user_id
         );
 
         Ok(Custom(Status::Created, Json(record)))
@@ -173,14 +157,9 @@ pub async fn revoke_user_achievement(
             ));
         }
 
-        let _ = log_repository::log_action(
-            conn,
-            Some(admin.id),
-            "ADMIN_REVOKE_ACHIEVEMENT",
-            &format!(
-                "Administrator '{}' revoked achievement id: {} from '{}' (id: {})",
-                admin.username, achievement_id, user.username, user_id
-            ),
+        log::info!(
+            "Administrator '{}' (id: {}) revoked achievement id: {} from user '{}' (id: {})",
+            admin.username, admin.id, achievement_id, user.username, user_id
         );
 
         Ok(Custom(
@@ -195,21 +174,6 @@ pub async fn revoke_user_achievement(
     .await
 }
 
-/// GET /api/admin/logs
-/// Retrieves the system action audit history
-#[get("/logs?<limit>")]
-pub async fn get_logs(
-    db: DbConn,
-    _admin: AdminUser,
-    limit: Option<i64>,
-) -> Result<Json<Vec<ActionLog>>, ApiError> {
-    let limit_val = limit.unwrap_or(100).clamp(1, 500);
-    db.run(move |conn| log_repository::find_all(conn, limit_val))
-        .await
-        .map(Json)
-        .map_err(ApiError::from)
-}
-
 /// Returns all routes of the administration panel
 pub fn routes_admin() -> Vec<Route> {
     routes![
@@ -219,7 +183,6 @@ pub fn routes_admin() -> Vec<Route> {
         list_pending_achievements,
         update_achievement_status,
         grant_user_achievement,
-        revoke_user_achievement,
-        get_logs
+        revoke_user_achievement
     ]
 }

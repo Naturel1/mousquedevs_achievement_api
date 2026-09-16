@@ -22,8 +22,7 @@ Full-featured and modular REST API built in **Rust** using the **Rocket v0.5** w
   - Moderation and review of achievement proposals.
   - User management and role updates (`user` / `admin`).
   - Manual grant and revocation of achievements for users.
-  - Audit action history logs (`logs`).
-- 📜 **Audit Logging System**: Automatic traceability of user and administrator actions stored in the `action_logs` table.
+- 📜 **Clean Local File Logging System**: Structured logging system writing directly to local text files (`logs/app.log`) and console output with timestamps, log levels (`INFO`, `WARN`, `ERROR`), and clear messages.
 - 🔄 **Automated Database Migrations**: Diesel SQL migrations are embedded into the binary (`embedded_migrations`) and executed automatically on application startup.
 - 🌐 **CORS & JSON Error Catchers**: Complete cross-origin request support for frontends and uniform JSON formatting for HTTP errors.
 
@@ -42,13 +41,17 @@ mousquedevs_achievement_api/
 ├── migrations/                 # SQL migration scripts (up.sql / down.sql)
 │   ├── 2026-09-15-000000_create_users_and_profiles/
 │   ├── 2026-09-15-000001_create_achievements_and_user_achievements/
-│   └── 2026-09-15-000002_create_action_logs/
+│   ├── 2026-09-15-141429-0000_remove_points/
+│   └── 2026-09-16-135500_add_unique_constraint_to_username/
 ├── tests/                      # Automated integration and unit tests
 │   └── health_test.rs
+├── logs/                       # Local text log files (ignored by Git)
+│   └── app.log
 └── src/
     ├── main.rs                 # Executable entry point
     ├── lib.rs                  # Rocket application setup, fairings, and route mounting
     ├── config.rs               # Environment variables and configuration management
+    ├── logging.rs              # File and console logging system configuration (fern + log)
     ├── schema.rs               # Strongly typed schema generated for Diesel
     ├── auth/                   # Authentication and security logic
     │   ├── mod.rs
@@ -61,21 +64,20 @@ mousquedevs_achievement_api/
     │   └── catchers.rs         # Rocket HTTP error catchers (400, 401, 403, 404, 422, 500)
     ├── fairings/               # Rocket middlewares
     │   ├── mod.rs
-    │   └── cors.rs             # CORS header configuration
+    │   ├── cors.rs             # CORS header configuration
+    │   └── logger.rs           # HTTP request & response logging fairing
     ├── models/                 # Data models & DTOs
     │   ├── mod.rs
     │   ├── user.rs             # Users & auth payloads
     │   ├── profile.rs          # Profiles & user views
     │   ├── achievement.rs      # Achievements & proposals
-    │   ├── user_achievement.rs # Many-to-many associations & unlock timestamps
-    │   └── action_log.rs       # Audit action log entries
+    │   └── user_achievement.rs # Many-to-many associations & unlock timestamps
     ├── repositories/           # Data access layer (Diesel queries)
     │   ├── mod.rs
     │   ├── user_repository.rs
     │   ├── profile_repository.rs
     │   ├── achievement_repository.rs
-    │   ├── user_achievement_repository.rs
-    │   └── log_repository.rs
+    │   └── user_achievement_repository.rs
     └── routes/                 # API HTTP controllers
         ├── mod.rs              # CORS preflight and route aggregation
         ├── health.rs           # Health Check (`/api/health`)
@@ -236,7 +238,43 @@ If you need to apply, revert, or manage migrations after starting the Docker con
 | `PUT` | `/api/admin/achievements/<id>/status` | Admin | Approves or rejects an achievement proposal (`status: "approved"` or `"rejected"`). |
 | `POST` | `/api/admin/users/<user_id>/grant/<achievement_id>` | Admin | Manually grants an achievement to a user. |
 | `DELETE` | `/api/admin/users/<user_id>/revoke/<achievement_id>` | Admin | Revokes an achievement from a user. |
-| `GET` | `/api/admin/logs?limit=100` | Admin | Retrieves system audit action logs. |
+
+---
+
+## 📝 Logging System (Local Text Files)
+
+The application features a clean, high-performance file-based logging architecture using `fern` and `log`. Logs are **not** stored in PostgreSQL database tables, but written directly to local text files on disk as well as to standard console output.
+
+### ⚙️ Configuration (`.env`)
+```bash
+# Log level: trace, debug, info, warn, error (default: info)
+LOG_LEVEL=info
+
+# Target text log file path (default: logs/app.log)
+LOG_FILE=logs/app.log
+```
+
+### 📄 Log Format
+Each log entry is timestamped and structured as follows:
+```text
+[YYYY-MM-DD HH:MM:SS] [LEVEL] [TARGET] Message
+```
+
+#### Example Output (`logs/app.log`):
+```text
+[2026-09-16 14:26:53] [INFO] [app::logging] Logging system initialized successfully. Writing logs to: logs/app.log
+[2026-09-16 14:27:01] [INFO] [app::fairings::logger] --> POST /api/auth/login (client: 127.0.0.1)
+[2026-09-16 14:27:01] [INFO] [app::routes::auth] User 'alexandre' (id: 1) successfully logged in
+[2026-09-16 14:27:01] [INFO] [app::fairings::logger] <-- POST /api/auth/login [200 OK]
+[2026-09-16 14:27:15] [INFO] [app::routes::achievements] User 'alexandre' (id: 1) unlocked achievement 'First Steps' (id: 2)
+[2026-09-16 14:27:42] [WARN] [app::errors] 404 Not Found on GET /api/achievements/999: Achievement with identifier 999 does not exist
+```
+
+### 🔍 Features Covered
+- **HTTP Request & Response Fairing (`RequestLogger`)**: Automatically records all incoming HTTP requests (HTTP method, URI, remote client IP) and outbound responses (status code).
+- **Authentication & Security Events**: Logs user registrations, logins, failed authentication attempts, and authorization denials.
+- **Achievement & Moderation Lifecycle**: Logs proposals, approvals, unlocks, manual grants, revocations, updates, and deletions.
+- **Error Traceability**: Warnings and error traces for 4xx/5xx responses and database operations.
 
 ---
 

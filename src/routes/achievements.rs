@@ -10,7 +10,7 @@ use crate::models::achievement::{
 };
 use crate::models::user_achievement::UserAchievement;
 use crate::repositories::{
-    achievement_repository, log_repository, user_achievement_repository,
+    achievement_repository, user_achievement_repository,
 };
 
 /// GET /api/achievements
@@ -61,14 +61,9 @@ pub async fn propose_achievement(
 
         let created = achievement_repository::create(conn, new_item)?;
 
-        let _ = log_repository::log_action(
-            conn,
-            Some(auth.id),
-            "ACHIEVEMENT_PROPOSED",
-            &format!(
-                "User '{}' proposed achievement '{}' (id: {})",
-                auth.username, created.title, created.id
-            ),
+        log::info!(
+            "User '{}' (id: {}) proposed achievement '{}' (id: {})",
+            auth.username, auth.id, created.title, created.id
         );
 
         Ok(Custom(Status::Created, Json(created)))
@@ -105,14 +100,9 @@ pub async fn obtain_achievement(
         let record = user_achievement_repository::grant(conn, auth.id, id)?;
 
         // 4. Log the achievement unlocking
-        let _ = log_repository::log_action(
-            conn,
-            Some(auth.id),
-            "ACHIEVEMENT_OBTAINED",
-            &format!(
-                "User '{}' unlocked achievement '{}'",
-                auth.username, achievement.title
-            ),
+        log::info!(
+            "User '{}' (id: {}) unlocked achievement '{}' (id: {})",
+            auth.username, auth.id, achievement.title, achievement.id
         );
 
         Ok(Custom(Status::Created, Json(record)))
@@ -148,14 +138,9 @@ pub async fn create(
 
         let created = achievement_repository::create(conn, item)?;
 
-        let _ = log_repository::log_action(
-            conn,
-            Some(admin.id),
-            "ACHIEVEMENT_CREATED",
-            &format!(
-                "Administrator '{}' created achievement '{}' (id: {})",
-                admin.username, created.title, created.id
-            ),
+        log::info!(
+            "Administrator '{}' (id: {}) created achievement '{}' (id: {})",
+            admin.username, admin.id, created.title, created.id
         );
 
         Ok(Custom(Status::Created, Json(created)))
@@ -176,14 +161,9 @@ pub async fn update(
     db.run(move |conn| {
         let updated = achievement_repository::update(conn, id, data)?;
 
-        let _ = log_repository::log_action(
-            conn,
-            Some(admin.id),
-            "ACHIEVEMENT_UPDATED",
-            &format!(
-                "Administrator '{}' updated achievement (id: {})",
-                admin.username, id
-            ),
+        log::info!(
+            "Administrator '{}' (id: {}) updated achievement '{}' (id: {})",
+            admin.username, admin.id, updated.title, id
         );
 
         Ok(Json(updated))
@@ -207,14 +187,9 @@ pub async fn delete_achievement(
                 id
             )))
         } else {
-            let _ = log_repository::log_action(
-                conn,
-                Some(admin.id),
-                "ACHIEVEMENT_DELETED",
-                &format!(
-                    "Administrator '{}' deleted achievement (id: {})",
-                    admin.username, id
-                ),
+            log::info!(
+                "Administrator '{}' (id: {}) deleted achievement (id: {})",
+                admin.username, admin.id, id
             );
 
             Ok(Custom(

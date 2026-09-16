@@ -4,7 +4,7 @@ use crate::auth::jwt::AuthenticatedUser;
 use crate::db::DbConn;
 use crate::errors::ApiError;
 use crate::models::profile::{Profile, UpdateProfileRequest, UserProfileView};
-use crate::repositories::{log_repository, profile_repository};
+use crate::repositories::profile_repository;
 
 /// GET /api/profiles/<user_id>
 /// Retrieves the public profile of a user by ID along with their unlocked achievements
@@ -30,12 +30,7 @@ pub async fn update_my_profile(
     let data = update_data.into_inner();
     db.run(move |conn| {
         let updated = profile_repository::update(conn, auth.id, data)?;
-        let _ = log_repository::log_action(
-            conn,
-            Some(auth.id),
-            "PROFILE_UPDATE",
-            &format!("Profile update for '{}'", auth.username),
-        );
+        log::info!("Profile updated for user '{}' (id: {})", auth.username, auth.id);
         Ok(Json(updated))
     })
     .await

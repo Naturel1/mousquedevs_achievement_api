@@ -54,3 +54,16 @@ fn test_health_check_endpoint() {
     assert!(body.contains("status"));
     assert!(body.contains("ok"));
 }
+
+#[test]
+fn test_logging_system_file_output() {
+    app::logging::init_logger();
+    log::info!("Test log message for verification suite");
+
+    let log_file_path = std::env::var("LOG_FILE").unwrap_or_else(|_| "logs/app.log".to_string());
+    assert!(std::path::Path::new(&log_file_path).exists(), "Log file must exist");
+
+    let content = std::fs::read_to_string(&log_file_path).expect("Log file must be readable");
+    assert!(content.contains("[INFO]"), "Logs must include the log level");
+    assert!(content.contains("Test log message for verification suite"), "Logs must include message content");
+}

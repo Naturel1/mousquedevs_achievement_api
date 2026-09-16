@@ -8,7 +8,7 @@ use crate::db::DbConn;
 use crate::errors::ApiError;
 use crate::models::profile::{NewProfile, UserProfileView};
 use crate::models::user::{AuthResponse, LoginRequest, NewUser, RegisterRequest, UserResponse};
-use crate::repositories::{log_repository, profile_repository, user_repository};
+use crate::repositories::{profile_repository, user_repository};
 
 /// POST /api/auth/register
 /// Registers a new user account
@@ -49,12 +49,14 @@ pub async fn register(
     db.run(move |conn| {
         // Uniqueness validation
         if user_repository::find_by_username(conn, &username_owned).is_ok() {
+            log::warn!("Registration failed: username '{}' is already taken", username_owned);
             return Err(ApiError::BadRequest(
                 "This username is already taken".to_string(),
             ));
         }
 
         if user_repository::find_by_email(conn, &email_owned).is_ok() {
+            log::warn!("Registration failed: email '{}' is already in use", email_owned);
             return Err(ApiError::BadRequest(
                 "This email address is already in use".to_string(),
             ));
@@ -81,15 +83,9 @@ pub async fn register(
         };
         profile_repository::create(conn, new_profile)?;
 
-        // Log the action
-        let _ = log_repository::log_action(
-            conn,
-            Some(user.id),
-            "USER_REGISTER",
-            &format!(
-                "Account registration for '{}' (id: {}) with role '{}'",
-                user.username, user.id, user.role
-            ),
+        log::info!(
+            "New account registered: '{}' (id: {}) with role '{}'",
+            user.username, user.id, user.role
         );
 
         // Generate JWT token
@@ -125,20 +121,18 @@ pub async fn login(
 
     db.run(move |conn| {
         let user = user_repository::find_by_username_or_email(conn, &identifier)
-            .map_err(|_| ApiError::Unauthorized("Invalid credentials".to_string()))?;
+            .map_err(|_| {
+                log::warn!("Authentication failed: user identifier '{}' not found", identifier);
+                ApiError::Unauthorized("Invalid credentials".to_string())
+            })?;
 
         let is_valid = verify_password(&password_str, &user.password_hash)?;
         if !is_valid {
+            log::warn!("Authentication failed: invalid password for user '{}'", user.username);
             return Err(ApiError::Unauthorized("Invalid credentials".to_string()));
         }
 
-        // Log successful login
-        let _ = log_repository::log_action(
-            conn,
-            Some(user.id),
-            "USER_LOGIN",
-            &format!("Successful login for user '{}'", user.username),
-        );
+        log::info!("User '{}' (id: {}) successfully logged in", user.username, user.id);
 
         let token = create_jwt(user.id, &user.username, &user.role)?;
 

@@ -6,8 +6,8 @@ log_level = "normal"
 [default.databases.postgres_db]
 url = "postgres://postgres:postgres@localhost:5432/maadb"
 
-[development]
+[debug]
 log_level = "debug"
 
-[production]
+[release]
 log_level = "critical"

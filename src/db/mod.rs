@@ -41,12 +41,12 @@ impl rocket::fairing::Fairing for MigrationFairing {
 
         match run_embedded_migrations(&db_url) {
             Ok(_) => {
-                println!(">> [Database] Diesel migrations successfully applied.");
+                log::info!("Diesel migrations successfully applied");
                 Ok(rocket)
             }
             Err(e) => {
                 // If the database is unreachable (e.g. quick unit tests), warn without blocking
-                eprintln!(">> [Database] Information: non-blocking migration attempt: {}", e);
+                log::warn!("Non-blocking migration attempt: {}", e);
                 Ok(rocket)
             }
         }

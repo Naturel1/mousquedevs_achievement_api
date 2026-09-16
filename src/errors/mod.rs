@@ -38,12 +38,30 @@ impl From<diesel::result::Error> for ApiError {
 impl<'r> Responder<'r, 'static> for ApiError {
     fn respond_to(self, req: &'r Request<'_>) -> response::Result<'static> {
         let (status, message) = match self {
-            ApiError::NotFound(msg) => (Status::NotFound, msg),
-            ApiError::BadRequest(msg) => (Status::BadRequest, msg),
-            ApiError::Unauthorized(msg) => (Status::Unauthorized, msg),
-            ApiError::Forbidden(msg) => (Status::Forbidden, msg),
-            ApiError::InternalServerError(msg) => (Status::InternalServerError, msg),
-            ApiError::DatabaseError(msg) => (Status::InternalServerError, msg),
+            ApiError::NotFound(msg) => {
+                log::warn!("404 Not Found on {} {}: {}", req.method(), req.uri(), msg);
+                (Status::NotFound, msg)
+            }
+            ApiError::BadRequest(msg) => {
+                log::warn!("400 Bad Request on {} {}: {}", req.method(), req.uri(), msg);
+                (Status::BadRequest, msg)
+            }
+            ApiError::Unauthorized(msg) => {
+                log::warn!("401 Unauthorized on {} {}: {}", req.method(), req.uri(), msg);
+                (Status::Unauthorized, msg)
+            }
+            ApiError::Forbidden(msg) => {
+                log::warn!("403 Forbidden on {} {}: {}", req.method(), req.uri(), msg);
+                (Status::Forbidden, msg)
+            }
+            ApiError::InternalServerError(msg) => {
+                log::error!("500 Internal Server Error on {} {}: {}", req.method(), req.uri(), msg);
+                (Status::InternalServerError, msg)
+            }
+            ApiError::DatabaseError(msg) => {
+                log::error!("Database Error on {} {}: {}", req.method(), req.uri(), msg);
+                (Status::InternalServerError, msg)
+            }
         };
 
         let body = Json(ErrorResponse {
