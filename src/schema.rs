@@ -49,6 +49,7 @@ diesel::table! {
 diesel::table! {
     users (id) {
         id -> Int4,
+        // unique
         #[max_length = 50]
         username -> Varchar,
         #[max_length = 255]
